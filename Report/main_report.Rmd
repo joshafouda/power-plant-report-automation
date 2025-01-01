@@ -1,0 +1,443 @@
+---
+title: "Global Power Plant Performance Report"
+author: "Josué (Joshua) AFOUDA"
+date: "2025-01-01"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(GBPowerPlant)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+library(tidyr)
+library(leaflet)
+```
+
+# Simple Analyses
+
+## Data Overview
+
+```{r}
+dim(power_plant_data)
+```
+
+```{r}
+# Distribution of the number of power plants by country
+plants_by_country <- power_plant_data %>%
+  group_by(country) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(desc(num_power_plants))
+
+# View the distribution
+print(plants_by_country)
+```
+
+```{r}
+# Distribution of the installed capacities (capacity_mw) of the power plants
+capacity_distribution <- power_plant_data %>%
+  summarise(
+    min_capacity = min(capacity_mw, na.rm = TRUE),
+    max_capacity = max(capacity_mw, na.rm = TRUE),
+    mean_capacity = mean(capacity_mw, na.rm = TRUE),
+    median_capacity = median(capacity_mw, na.rm = TRUE),
+    total_capacity = sum(capacity_mw, na.rm = TRUE)
+  )
+
+# View capacity distribution summary
+print(capacity_distribution)
+```
+
+```{r}
+# Distribution of power plants by primary energy source (primary_fuel)
+plants_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(desc(num_power_plants))
+
+# View the distribution
+print(plants_by_fuel)
+```
+
+```{r}
+# Number of power plants by commissioning year
+plants_by_year <- power_plant_data %>%
+  filter(!is.na(commissioning_year)) %>%
+  group_by(commissioning_year) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(commissioning_year)
+
+# View the yearly distribution
+print(plants_by_year)
+```
+
+
+```{r}
+# Create Visualizations
+# 1. Number of power plants by country
+ggplot(plants_by_country, aes(x = reorder(country, -num_power_plants), y = num_power_plants)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Number of Power Plants by Country", x = "Country", y = "Number of Power Plants")
+
+# 2. Installed capacities of power plants
+ggplot(power_plant_data, aes(x = capacity_mw)) +
+  geom_histogram(binwidth = 50, fill = "darkorange", color = "white") +
+  labs(title = "Distribution of Installed Capacities (MW)", x = "Capacity (MW)", y = "Count")
+
+# 3. Power plants by primary energy source
+ggplot(plants_by_fuel, aes(x = reorder(primary_fuel, -num_power_plants), y = num_power_plants, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Power Plants by Primary Energy Source", x = "Primary Energy Source", y = "Number of Power Plants")
+
+# 4. Number of power plants by commissioning year
+ggplot(plants_by_year, aes(x = commissioning_year, y = num_power_plants)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Number of Power Plants by Commissioning Year", x = "Year", y = "Number of Power Plants")
+
+```
+## Descriptive Statistics
+
+```{r}
+# 1. Mean, median, and maximum capacity of plants by fuel type (primary_fuel)
+capacity_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    mean_capacity = mean(capacity_mw, na.rm = TRUE),
+    median_capacity = median(capacity_mw, na.rm = TRUE),
+    max_capacity = max(capacity_mw, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_capacity))
+
+# View summary statistics
+print(capacity_by_fuel)
+```
+
+```{r}
+# 2. Total number of plants with generation data for each year
+years <- 2013:2019
+generation_columns <- paste0("generation_gwh_", years)
+
+generation_data_summary <- sapply(generation_columns, function(col) {
+  sum(!is.na(power_plant_data[[col]])) # Count non-missing values for each year
+})
+
+generation_data_summary <- data.frame(
+  year = years,
+  num_plants_with_data = generation_data_summary
+)
+
+# View generation data summary
+print(generation_data_summary)
+```
+
+```{r}
+# 3. Missing data rate for different columns
+missing_data_rate <- power_plant_data %>%
+  summarise_all(~ mean(is.na(.)) * 100) %>% # Calculate percentage of missing values
+  pivot_longer(everything(), names_to = "column", values_to = "missing_rate") %>%
+  arrange(desc(missing_rate))
+
+# View missing data rates
+print(missing_data_rate)
+```
+
+```{r}
+# Visualizations
+
+# Mean, median, max capacity by fuel type
+ggplot(capacity_by_fuel, aes(x = reorder(primary_fuel, -mean_capacity), y = mean_capacity, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Mean Capacity of Power Plants by Fuel Type",
+    x = "Fuel Type",
+    y = "Mean Capacity (MW)"
+  )
+```
+
+```{r}
+# Number of plants with generation data by year
+ggplot(generation_data_summary, aes(x = factor(year), y = num_plants_with_data, fill = factor(year))) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Number of Plants with Generation Data by Year",
+    x = "Year",
+    y = "Number of Plants",
+    fill = "Year"
+  )
+
+```
+
+
+```{r}
+# Missing data rate
+ggplot(missing_data_rate, aes(x = reorder(column, -missing_rate), y = missing_rate, fill = missing_rate)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis() +
+  coord_flip() +
+  labs(
+    title = "Missing Data Rate by Column",
+    x = "Column",
+    y = "Missing Data Rate (%)"
+  )
+```
+
+## Other Simple Visualizations
+
+```{r}
+# 1. Histogram of Installed Capacity
+ggplot(power_plant_data, aes(x = capacity_mw)) +
+  geom_histogram(binwidth = 50, fill = viridis(1), color = "blue") +
+  labs(
+    title = "Histogram of Installed Capacity",
+    x = "Installed Capacity (MW)",
+    y = "Number of Power Plants"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# 2. Geographic Map of Power Plants
+# Ensure dataset has valid lat/lon values
+valid_locations <- power_plant_data %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+leaflet(data = valid_locations) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~longitude, ~latitude,
+    popup = ~paste(name, "<br>", "Capacity:", capacity_mw, "MW", "<br>", "Fuel Type:", primary_fuel),
+    radius = ~log(capacity_mw + 1), # Scale radius by log of capacity for better visualization
+    color = "blue",
+    fillOpacity = 0.7
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    title = "Power Plants",
+    colors = "blue",
+    labels = "Power Plant Locations"
+  )
+```
+
+
+```{r}
+# 3. Pie Chart of Power Plants by Fuel Type
+plants_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(num_power_plants = n()) %>%
+  mutate(percentage = num_power_plants / sum(num_power_plants) * 100)
+
+ggplot(plants_by_fuel, aes(x = "", y = percentage, fill = primary_fuel)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Proportion of Power Plants by Fuel Type",
+    x = NULL,
+    y = NULL,
+    fill = "Fuel Type"
+  ) +
+  theme_void()
+```
+
+# Interim exploratory analyses
+
+## Temporal and Geographical Comparisons
+
+```{r}
+# 1. Evolution of Installed Capacity by Country Over Time
+capacity_evolution <- power_plant_data %>%
+  filter(!is.na(commissioning_year) & !is.na(capacity_mw)) %>%
+  group_by(country, commissioning_year) %>%
+  summarise(total_capacity = sum(capacity_mw, na.rm = TRUE)) %>%
+  arrange(commissioning_year)
+
+print(capacity_evolution)
+
+ggplot(capacity_evolution, aes(x = commissioning_year, y = total_capacity, color = country)) +
+  geom_line() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  labs(
+    title = "Evolution of Installed Capacity by Country",
+    x = "Commissioning Year",
+    y = "Total Installed Capacity (MW)",
+    color = "Country"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# 2. Comparison of Actual and Estimated Production
+# Gather data for both actual and estimated generation
+actual_estimated_comparison <- power_plant_data %>%
+  select(starts_with("generation_gwh_"), starts_with("estimated_generation_gwh_")) %>%
+  summarise(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(cols = everything(), names_to = "year", values_to = "generation") %>%
+  mutate(
+    type = ifelse(grepl("estimated", year), "Estimated", "Actual"),
+    year = gsub("generation_gwh_|estimated_generation_gwh_", "", year)
+  )
+
+print(actual_estimated_comparison)
+
+ggplot(actual_estimated_comparison, aes(x = year, y = generation, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Comparison of Actual and Estimated Production",
+    x = "Year",
+    y = "Total Generation (GWh)",
+    fill = "Type"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+# Ensure bins for latitude and longitude are numeric for mapping
+region_density <- power_plant_data %>%
+  filter(!is.na(latitude) & !is.na(longitude)) %>%
+  mutate(
+    lat_bin_start = floor(latitude / 5) * 5,
+    lon_bin_start = floor(longitude / 5) * 5,
+    lat_bin_end = lat_bin_start + 5,
+    lon_bin_end = lon_bin_start + 5
+  ) %>%
+  group_by(lat_bin_start, lon_bin_start, lat_bin_end, lon_bin_end) %>%
+  summarise(num_plants = n(), .groups = 'drop') %>%
+  arrange(desc(num_plants))
+
+# Plot density regions on a Leaflet map
+leaflet(data = region_density) %>%
+  addTiles() %>%
+  addRectangles(
+    lng1 = ~lon_bin_start,
+    lat1 = ~lat_bin_start,
+    lng2 = ~lon_bin_end,
+    lat2 = ~lat_bin_end,
+    fillColor = ~colorNumeric("viridis", num_plants)(num_plants),
+    fillOpacity = 0.7,
+    weight = 0
+  ) %>%
+  addLegend(
+    "bottomright",
+    pal = colorNumeric("viridis", region_density$num_plants),
+    values = region_density$num_plants,
+    title = "Plant Density",
+    opacity = 1
+  )
+
+```
+
+
+## Energy Source Analyses
+
+```{r}
+# 1. Share of Each Fuel Type in Total Production by Country
+fuel_share_by_country <- power_plant_data %>%
+  group_by(country, primary_fuel) %>%
+  summarise(
+    total_production = sum(
+      rowSums(
+        select(., matches("^generation_gwh_\\d+$")) %>%
+          mutate(across(everything(), as.numeric)), # Ensure numeric type
+        na.rm = TRUE
+      ),
+      na.rm = TRUE
+    ),
+    .groups = 'drop'
+  ) %>%
+  group_by(country) %>%
+  mutate(share = total_production / sum(total_production) * 100) %>%
+  arrange(country, desc(share))
+
+# View the results
+print(fuel_share_by_country)
+
+# Visualization: Share of Fuel Types by Country (Top 10 Countries)
+top_countries <- fuel_share_by_country %>%
+  group_by(country) %>%
+  summarise(total_production = sum(total_production)) %>%
+  top_n(10, wt = total_production) %>%
+  pull(country)
+
+fuel_share_top_countries <- fuel_share_by_country %>%
+  filter(country %in% top_countries)
+
+ggplot(fuel_share_top_countries, aes(x = country, y = share, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Share of Each Fuel Type in Total Production by Country",
+    x = "Country",
+    y = "Share (%)",
+    fill = "Fuel Type"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# 2. Average Installed Capacity by Fuel Type at Global Level
+avg_capacity_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    avg_capacity = mean(capacity_mw, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_capacity))
+
+# View summary table
+print(avg_capacity_by_fuel)
+
+# Visualization: Average Installed Capacity by Fuel Type
+ggplot(avg_capacity_by_fuel, aes(x = reorder(primary_fuel, -avg_capacity), y = avg_capacity, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Average Installed Capacity by Fuel Type",
+    x = "Fuel Type",
+    y = "Average Capacity (MW)",
+    fill = "Fuel Type"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+# 3. Assessment of the Most Recent Fuel Types
+recent_fuel_types <- power_plant_data %>%
+  filter(!is.na(commissioning_year)) %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    most_recent_year = max(commissioning_year, na.rm = TRUE),
+    num_recent_plants = sum(commissioning_year == max(commissioning_year, na.rm = TRUE)),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(most_recent_year))
+
+# View summary table
+print(recent_fuel_types)
+
+# Visualization: Most Recent Fuel Types Commissioned
+ggplot(recent_fuel_types, aes(x = reorder(primary_fuel, -most_recent_year), y = most_recent_year, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Most Recent Fuel Types Commissioned",
+    x = "Fuel Type",
+    y = "Most Recent Commissioning Year",
+    fill = "Fuel Type"
+  ) +
+  theme_minimal()
+```
+
+
