@@ -1,0 +1,113 @@
+## Comparison of the Share of Renewables and Fossil Fuels
+
+```{r}
+# Define renewable and fossil fuel categories
+renewable_fuels <- c("Hydro", "Solar", "Wind", "Geothermal", "Biomass")
+fossil_fuels <- c("Coal", "Gas", "Oil")
+
+# Calculate total production by fuel type category
+fuel_category_comparison <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE),
+    fuel_category = case_when(
+      primary_fuel %in% renewable_fuels ~ "Renewable",
+      primary_fuel %in% fossil_fuels ~ "Fossil",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  group_by(fuel_category) %>%
+  summarise(
+    total_production = sum(total_production, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(share = total_production / sum(total_production) * 100)
+
+# View the comparison table
+print(fuel_category_comparison)
+
+# Visualization: Share of Renewables vs Fossil Fuels
+ggplot(fuel_category_comparison, aes(x = fuel_category, y = share, fill = fuel_category)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Share of Renewables and Fossil Fuels in Energy Production",
+    x = "Fuel Category",
+    y = "Share (%)",
+    fill = "Fuel Category"
+  ) +
+  theme_minimal()
+```
+
+
+## Most Advanced Countries in the Energy Transition
+
+```{r}
+# Calculate share of renewables over time by country
+renewable_trends <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE),
+    is_renewable = ifelse(primary_fuel %in% renewable_fuels, TRUE, FALSE)
+  ) %>%
+  group_by(country, is_renewable) %>%
+  summarise(
+    total_production = sum(total_production, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  group_by(country) %>%
+  mutate(share = total_production / sum(total_production) * 100) %>%
+  filter(is_renewable) %>%
+  arrange(desc(share))
+
+# View the most advanced countries in renewable adoption
+top_renewable_countries <- renewable_trends %>%
+  #top_n(10, wt = share)
+  head(10)
+
+print(top_renewable_countries)
+
+# Visualization: Top 10 Countries in Renewable Energy Adoption
+ggplot(top_renewable_countries, aes(x = reorder(country, -share), y = share, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Top 10 Countries in Renewable Energy Adoption",
+    x = "Country",
+    y = "Share of Renewable Energy (%)",
+    fill = "Country"
+  ) +
+  theme_minimal()
+```
+
+## Power Plants with Production Below Their Capacity
+
+```{r}
+# Calculate the gap between capacity and production
+underperforming_plants <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE),
+    max_possible_production = capacity_mw * 8760 / 1000, # Max production in GWh assuming full capacity
+    performance_gap = max_possible_production - total_production,
+    underperforming = performance_gap > 0
+  ) %>%
+  filter(underperforming) %>%
+  arrange(desc(performance_gap))
+
+# View underperforming plants
+print(head(underperforming_plants, 10))
+
+# Visualization: Gap Between Capacity and Production
+ggplot(head(underperforming_plants, 10), aes(x = reorder(name, -performance_gap), y = performance_gap, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Performance Gap of Underperforming Power Plants",
+    x = "Power Plant",
+    y = "Performance Gap (GWh)",
+    fill = "Primary Fuel"
+  ) +
+  theme_minimal()
+```
+
+It's an opportunity fore more renewable energy

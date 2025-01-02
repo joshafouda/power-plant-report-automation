@@ -1,0 +1,78 @@
+## Share of Each Fuel Type in Total Production by Country
+
+```{r}
+# Data preparation
+fuel_share_by_country <- power_plant_data %>%
+  select(country_long, primary_fuel, matches("^generation_gwh_\\d+$")) %>%
+  pivot_longer(
+    cols = matches("^generation_gwh_\\d+$"),
+    names_to = "year",
+    values_to = "generation_gwh",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(country_long, primary_fuel) %>%
+  summarise(
+    total_production = sum(generation_gwh, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(country_long) %>%
+  mutate(share = total_production / sum(total_production) * 100) %>%
+  ungroup()
+
+# Plotting
+p <- ggplot(fuel_share_by_country, aes(x = country_long, y = share, fill = primary_fuel)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_viridis(discrete = TRUE, option = "C") +
+  labs(
+    title = "Share of Each Primary Fuel Type in Total Production by Country",
+    x = "Country",
+    y = "Share (%)",
+    fill = "Primary Fuel"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Comparison of Production Between Power Plants with Multiple Fuels and Single Fuel Type
+
+```{r}
+# Comparison Between Power Plants with Multiple Fuels and Single Fuel Type
+
+# Classify plants as single-fuel or multi-fuel
+fuel_type_analysis <- power_plant_data %>%
+  mutate(
+    is_multi_fuel = ifelse(!is.na(other_fuel1) | !is.na(other_fuel2), "Multi-Fuel", "Single-Fuel"),
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE)
+  ) %>%
+  group_by(is_multi_fuel) %>%
+  summarise(
+    avg_production = mean(total_production, na.rm = TRUE),
+    median_production = median(total_production, na.rm = TRUE),
+    num_plants = n(),
+    .groups = 'drop'
+  )
+
+print(fuel_type_analysis)
+
+# Visualization: Average Production for Single-Fuel vs. Multi-Fuel Plants
+ggplot(fuel_type_analysis, aes(x = is_multi_fuel, y = avg_production, fill = is_multi_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Comparison of Production: Single-Fuel vs. Multi-Fuel Plants",
+    x = "Fuel Type Configuration",
+    y = "Average Production (GWh)",
+    fill = "Fuel Type Configuration"
+  ) +
+  theme_minimal()
+
+```

@@ -1,0 +1,362 @@
+## Evolution of Installed Capacity by Country Over Time
+
+Understanding the historical growth of installed capacity helps evaluate the development of energy infrastructure in different countries. The following line chart shows the evolution of installed capacity (in MW) for all countries in the dataset.
+
+```{r}
+# Evolution of Installed Capacity by Country Over Time
+capacity_evolution <- power_plant_data %>%
+  filter(!is.na(commissioning_year) & !is.na(capacity_mw)) %>%
+  group_by(country, commissioning_year) %>%
+  summarise(total_capacity = sum(capacity_mw, na.rm = TRUE)) %>%
+  arrange(commissioning_year)
+
+print(capacity_evolution)
+
+p <- ggplot(capacity_evolution, aes(x = commissioning_year, y = total_capacity, color = country)) +
+  geom_line() +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  labs(
+    title = "Evolution of Installed Capacity by Country",
+    x = "Commissioning Year",
+    y = "Total Installed Capacity (MW)",
+    color = "Country"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+## Energy Production Trends by Primary Fuel Type
+
+```{r}
+# Aggregate production data by fuel type and year
+production_trends <- power_plant_data %>%
+  select(primary_fuel, matches("^generation_gwh_\\d+$")) %>%
+  pivot_longer(cols = matches("^generation_gwh_\\d+$"), 
+               names_to = "year", 
+               values_to = "production") %>%
+  mutate(
+    year = as.numeric(gsub("generation_gwh_", "", year))
+  ) %>%
+  group_by(primary_fuel, year) %>%
+  summarise(
+    total_production = sum(production, na.rm = TRUE),
+    .groups = 'drop'
+  )
+
+# Visualization: Production Trends by Fuel Type
+p <- ggplot(production_trends, aes(x = year, y = total_production, color = primary_fuel)) +
+  geom_line(size = 1) +
+  scale_color_viridis(discrete = TRUE) +
+  labs(
+    title = "Energy Production Trends by Fuel Type",
+    x = "Year",
+    y = "Total Production (GWh)",
+    color = "Fuel Type"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Analyze progress in installed capacity and electricity production
+
+To analyze progress in installed capacity and electricity production, we can calculate the percentage growth or absolute differences over a range of years for each country. Then, we can identify countries with the most significant improvements.
+
+**Approach**:
+
+1. **Installed Capacity Progress**:
+   - Calculate the difference in total installed capacity (`capacity_mw`) between earlier and later years.
+   - Compute percentage growth per country.
+
+2. **Electricity Production Progress**:
+   - Sum the annual electricity generation for each country.
+   - Compare total production across available years.
+
+3. **Top Performing Countries**:
+   - Rank countries by absolute or percentage growth in installed capacity and electricity production.
+
+4. **Visualization**:
+   - Use bar charts or line plots to showcase progress for the top-performing countries.
+
+**Code Implementation**:
+
+```{r}
+# Calculate progress in installed capacity
+capacity_progress <- power_plant_data %>%
+  group_by(country_long) %>%
+  summarise(
+    initial_capacity = sum(capacity_mw, na.rm = TRUE),
+    recent_capacity = sum(if_else(commissioning_year >= 2015, capacity_mw, 0), na.rm = TRUE),
+    capacity_growth = recent_capacity - initial_capacity,
+    capacity_growth_pct = (recent_capacity - initial_capacity) / initial_capacity * 100
+  ) %>%
+  arrange(desc(capacity_growth)) %>%
+  drop_na()
+
+# Calculate progress in electricity production
+production_progress <- power_plant_data %>%
+  select(country_long, matches("^generation_gwh_\\d+$")) %>%
+  pivot_longer(
+    cols = matches("^generation_gwh_\\d+$"),
+    names_to = "year",
+    values_to = "generation_gwh",
+    values_drop_na = TRUE
+  ) %>%
+  mutate(year = as.numeric(gsub("generation_gwh_", "", year))) %>%
+  group_by(country_long, year) %>%
+  summarise(total_production = sum(generation_gwh, na.rm = TRUE), .groups = "drop") %>%
+  arrange(country_long, year) %>%
+  group_by(country_long) %>%
+  summarise(
+    initial_production = first(total_production),
+    recent_production = last(total_production),
+    production_growth = recent_production - initial_production,
+    production_growth_pct = (recent_production - initial_production) / initial_production * 100
+  ) %>%
+  arrange(desc(production_growth)) %>%
+  drop_na()
+
+# Identify top-performing countries in capacity and production growth
+top_capacity_countries <- capacity_progress %>%
+  slice_max(capacity_growth, n = 10)
+
+top_production_countries <- production_progress %>%
+  slice_max(production_growth, n = 10)
+
+# Plot capacity progress
+p1 <- ggplot(top_capacity_countries, aes(x = reorder(country_long, capacity_growth), y = capacity_growth, fill = capacity_growth)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis_c(option = "C") +
+  labs(
+    title = "Top 10 Countries by Installed Capacity Growth",
+    x = "Country",
+    y = "Capacity Growth (MW)",
+    fill = "Growth (MW)"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p1)
+} else {
+  p1
+}
+
+# Plot production progress
+p2 <- ggplot(top_production_countries, aes(x = reorder(country_long, production_growth), y = production_growth, fill = production_growth)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis_c(option = "C") +
+  labs(
+    title = "Top 10 Countries by Electricity Production Growth",
+    x = "Country",
+    y = "Production Growth (GWh)",
+    fill = "Growth (GWh)"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p2)
+} else {
+  p2
+}
+```
+
+
+I trust more the code bellow:
+
+
+```{r}
+# 2. Identification of Countries Making the Most Progress
+# Calculate progress in installed capacity and electricity production
+# Reshape and calculate progress
+progress <- power_plant_data %>%
+  mutate(across(matches("^generation_gwh_\\d+$"), as.numeric)) %>%
+  pivot_longer(
+    cols = matches("^generation_gwh_\\d+$"),
+    names_to = "year",
+    values_to = "generation_gwh",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(country) %>%
+  summarise(
+    total_capacity = sum(capacity_mw, na.rm = TRUE),
+    total_production = sum(generation_gwh, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    capacity_rank = rank(-total_capacity),
+    production_rank = rank(-total_production)
+  ) %>%
+  arrange(capacity_rank, production_rank)
+
+
+# View the progress summary
+print(progress)
+
+# Visualization: Progress by Top 10 Countries (Capacity and Production)
+top_countries_progress <- progress %>%
+  slice_head(n = 10)
+
+ggplot(top_countries_progress, aes(x = reorder(country, -total_capacity), y = total_capacity, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Top 10 Countries: Installed Capacity Progress",
+    x = "Country",
+    y = "Installed Capacity (MW)",
+    fill = "Country"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+ggplot(top_countries_progress, aes(x = reorder(country, -total_production), y = total_production, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Top 10 Countries: Electricity Production Progress",
+    x = "Country",
+    y = "Electricity Production (GWh)",
+    fill = "Country"
+  ) +
+  coord_flip() +
+  theme_minimal()
+```
+
+## Estimation of Future Capacities 
+
+```{r}
+# Prepare data for regression
+capacity_trend <- power_plant_data %>%
+  filter(!is.na(commissioning_year) & !is.na(capacity_mw)) %>%
+  group_by(commissioning_year) %>%
+  summarise(total_capacity = sum(capacity_mw, na.rm = TRUE), .groups = 'drop')
+
+# Fit a linear model
+capacity_model <- lm(total_capacity ~ commissioning_year, data = capacity_trend)
+
+# Predict future capacities for the next 10 years
+future_years <- data.frame(commissioning_year = seq(
+  max(capacity_trend$commissioning_year) + 1, 
+  max(capacity_trend$commissioning_year) + 10
+))
+future_years$total_capacity <- predict(capacity_model, newdata = future_years)
+
+# Combine historical and predicted data
+future_capacity_trend <- bind_rows(
+  capacity_trend,
+  future_years
+)
+
+# Visualization: Historical and Predicted Installed Capacity
+p <- ggplot(future_capacity_trend, aes(x = commissioning_year, y = total_capacity)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(
+    data = future_years, 
+    aes(x = commissioning_year, y = total_capacity), 
+    color = "red", size = 2
+  ) +
+  labs(
+    title = "Historical and Predicted Installed Capacity",
+    x = "Year",
+    y = "Total Installed Capacity (MW)"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+
+## Temporal Analysis of Energy Production Trends (a revoir)
+
+```{r}
+# 1. Prepare Data for Time-Series Analysis
+
+# Aggregate yearly production data for all power plants
+yearly_production <- power_plant_data %>%
+  select(matches("^generation_gwh_\\d+$")) %>%
+  summarise(across(everything(), sum, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "year", values_to = "total_production") %>%
+  mutate(year = as.numeric(gsub("generation_gwh_", "", year))) %>%
+  arrange(year)
+
+# Convert to time-series object
+ts_production <- ts(yearly_production$total_production, start = min(yearly_production$year), frequency = 1)
+
+# View time-series data
+print(yearly_production)
+
+# Visualization: Yearly Production Trend
+ggplot(yearly_production, aes(x = year, y = total_production)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "red") +
+  labs(
+    title = "Yearly Energy Production Trend",
+    x = "Year",
+    y = "Total Production (GWh)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# 2. Decompose Time-Series Data
+
+# Decompose the time-series into components
+decomposition <- decompose(ts_production, type = "additive")
+
+# Plot decomposition
+autoplot(decomposition) +
+  labs(
+    title = "Decomposition of Energy Production Time-Series",
+    x = "Year",
+    y = "Production (GWh)"
+  )
+```
+
+```{r}
+# 3. Forecast Future Production Using ARIMA
+
+# Fit an ARIMA model
+arima_model <- auto.arima(ts_production)
+
+# Forecast for the next 10 years
+forecast_production <- forecast(arima_model, h = 10)
+
+# Plot forecast
+autoplot(forecast_production) +
+  labs(
+    title = "Forecast of Future Energy Production",
+    x = "Year",
+    y = "Total Production (GWh)"
+  )
+```
+
+
+```{r}
+# 4. Detect Patterns: Seasonal and Cyclical Trends
+
+# Highlight cyclical or seasonal patterns
+cyclical_pattern <- ggplot(yearly_production, aes(x = year, y = total_production)) +
+  geom_smooth(method = "loess", color = "blue", fill = "lightblue", alpha = 0.3) +
+  labs(
+    title = "Cyclical Trends in Energy Production",
+    x = "Year",
+    y = "Total Production (GWh)"
+  ) +
+  theme_minimal()
+
+print(cyclical_pattern)
+
+```

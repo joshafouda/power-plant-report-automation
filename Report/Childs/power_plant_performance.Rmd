@@ -1,0 +1,341 @@
+## Mean Capacity of Power Plants by Primary Fuel Type
+
+```{r}
+# Mean, median, and maximum capacity of plants by fuel type (primary_fuel)
+capacity_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    mean_capacity = mean(capacity_mw, na.rm = TRUE),
+    median_capacity = median(capacity_mw, na.rm = TRUE),
+    max_capacity = max(capacity_mw, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_capacity))
+
+# View summary statistics
+print(capacity_by_fuel)
+
+# Mean, median, max capacity by fuel type
+p <- ggplot(capacity_by_fuel, aes(x = reorder(primary_fuel, -mean_capacity), y = mean_capacity, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Mean Capacity of Power Plants by Primary Fuel Type",
+    x = "Fuel Type",
+    y = "Mean Capacity (MW)"
+  )
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+
+## Comparison of Actual and Estimated Production
+
+```{r}
+# Gather data for both actual and estimated generation
+actual_estimated_comparison <- power_plant_data %>%
+  select(starts_with("generation_gwh_"), starts_with("estimated_generation_gwh_")) %>%
+  summarise(across(everything(), ~ sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(cols = everything(), names_to = "year", values_to = "generation") %>%
+  mutate(
+    type = ifelse(grepl("estimated", year), "Estimated", "Actual"),
+    year = gsub("generation_gwh_|estimated_generation_gwh_", "", year)
+  )
+
+print(actual_estimated_comparison)
+
+p <- ggplot(actual_estimated_comparison, aes(x = year, y = generation, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(
+    title = "Comparison of Actual and Estimated Production",
+    x = "Year",
+    y = "Total Generation (GWh)",
+    fill = "Type"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+
+## Installed Capacity by Primary Fuel Type at Global Level
+
+```{r}
+# Average Installed Capacity by Primary Fuel Type at Global Level
+avg_capacity_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    avg_capacity = mean(capacity_mw, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_capacity))
+
+# View summary table
+print(avg_capacity_by_fuel)
+
+# Visualization: Average Installed Capacity by Fuel Type
+p <- ggplot(avg_capacity_by_fuel, aes(x = reorder(primary_fuel, -avg_capacity), y = avg_capacity, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Average Installed Capacity by Primary Fuel Type",
+    x = "Fuel Type",
+    y = "Average Capacity (MW)",
+    fill = "Fuel Type"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+
+# Average Production (GWh) by Primary Fuel Type or Country
+
+```{r}
+# Calculate average production by fuel type
+average_production_by_fuel <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE)
+  ) %>%
+  group_by(primary_fuel) %>%
+  summarise(
+    avg_production = mean(total_production, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_production))
+
+print(average_production_by_fuel)
+
+# Visualization: Average Production by Fuel Type
+p <- ggplot(average_production_by_fuel, aes(x = reorder(primary_fuel, -avg_production), y = avg_production, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Average Production by Fuel Type (GWh)",
+    x = "Fuel Type",
+    y = "Average Production (GWh)",
+    fill = "Fuel Type"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Average production by country
+
+```{r}
+# Calculate average production by country
+average_production_by_country <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE)
+  ) %>%
+  group_by(country) %>%
+  summarise(
+    avg_production = mean(total_production, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  arrange(desc(avg_production))
+
+print(average_production_by_country)
+
+# Visualization: Average Production by Country (Top 10 Countries)
+top_countries <- average_production_by_country %>%
+  #top_n(10, wt = avg_production)
+  head(10)
+
+p <- ggplot(top_countries, aes(x = reorder(country, -avg_production), y = avg_production, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis(discrete = TRUE) +
+  coord_flip() +
+  labs(
+    title = "Average Production by Country (Top 10, GWh)",
+    x = "Country",
+    y = "Average Production (GWh)",
+    fill = "Country"
+  ) +
+  theme_minimal()
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Clustering of Power Plants According to Performance and Characteristics
+
+```{r}
+# Prepare data for clustering
+clustering_data <- power_plant_data %>%
+  mutate(
+    total_production = rowSums(select(., matches("^generation_gwh_\\d+$")), na.rm = TRUE),
+    performance_ratio = total_production / (capacity_mw * 8760 / 1000) # Production as % of max capacity
+  ) %>%
+  select(primary_fuel, capacity_mw, total_production, performance_ratio) %>%
+  filter(!is.na(capacity_mw) & !is.na(total_production) & !is.na(performance_ratio)) %>%
+  mutate(primary_fuel = as.factor(primary_fuel)) # Convert primary_fuel to a factor
+
+# Normalize numeric data
+numeric_data <- clustering_data %>%
+  select(capacity_mw, total_production, performance_ratio) %>%
+  scale()
+
+# Perform clustering using k-means
+set.seed(123) # Ensure reproducibility
+kmeans_result <- kmeans(numeric_data, centers = 3, nstart = 25)
+
+# Add cluster labels to data
+clustering_data <- clustering_data %>%
+  mutate(cluster = as.factor(kmeans_result$cluster))
+
+# Visualization: Clustering Results
+ggplot(clustering_data, aes(x = capacity_mw, y = total_production, color = cluster, shape = primary_fuel)) +
+  geom_point(size = 3) +
+  scale_color_viridis(discrete = TRUE) +
+  labs(
+    title = "Clustering of Power Plants Based on Performance and Characteristics",
+    x = "Installed Capacity (MW)",
+    y = "Total Production (GWh)",
+    color = "Cluster",
+    shape = "Primary Fuel"
+  ) +
+  theme_minimal()
+
+```
+
+
+## Impact of Age on Performance
+
+To analyze the impact of age on the performance of power plants, we can calculate the age of each plant, evaluate its performance based on electricity generation (`generation_gwh_*` columns), and then visualize the relationship between age and performance.
+
+Here’s how to approach this:
+
+1. **Calculate Age of Power Plants:**
+   - Age is the difference between the current year and the `commissioning_year`.
+
+2. **Aggregate Performance:**
+   - Sum up electricity generation across all available years for each plant.
+
+3. **Filter Data:**
+   - Exclude plants with missing or invalid `commissioning_year` or `generation_gwh_*` data.
+
+4. **Visualize Relationship:**
+   - Create scatter plots or line charts to show trends between plant age and performance.
+   - Use `ggplot2` for visualization.
+
+
+```{r}
+# Set the current year
+current_year <- as.integer(format(Sys.Date(), "%Y"))
+
+# Calculate age and performance
+plant_age_performance <- power_plant_data %>%
+  filter(!is.na(commissioning_year)) %>% # Exclude rows with missing commissioning_year
+  mutate(age = current_year - as.integer(round(commissioning_year))) %>% # Calculate age
+  rowwise() %>%
+  mutate(
+    total_generation = sum(
+      c_across(starts_with("generation_gwh_")), na.rm = TRUE
+    )
+  ) %>%
+  ungroup() %>%
+  filter(!is.na(total_generation), total_generation > 0, age >= 0) # Exclude invalid values
+
+# Visualization: Scatter plot of Age vs. Performance
+ggplot(plant_age_performance, aes(x = age, y = total_generation)) +
+  geom_point(alpha = 0.6, color = "darkblue") +
+  geom_smooth(method = "loess", color = "red", se = TRUE) +
+  scale_y_log10(labels = scales::comma) + # Log scale for better visualization
+  labs(
+    title = "Impact of Plant Age on Performance",
+    x = "Plant Age (Years)",
+    y = "Total Electricity Generation (GWh)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+  )
+
+# Additional Analysis: Group by Age and Summarize
+age_summary <- plant_age_performance %>%
+  group_by(age) %>%
+  summarise(
+    avg_generation = mean(total_generation, na.rm = TRUE),
+    total_generation = sum(total_generation, na.rm = TRUE),
+    plant_count = n()
+  ) %>%
+  arrange(age)
+
+# Visualization: Average Generation by Age
+ggplot(age_summary, aes(x = age, y = avg_generation)) +
+  geom_line(color = viridis(1)) +
+  labs(
+    title = "Average Performance of Plants by Age",
+    x = "Plant Age (Years)",
+    y = "Average Electricity Generation (GWh)"
+  ) +
+  theme_minimal()
+```
+
+## Identify Older Plants with Low Performance
+
+```{r}
+# Define older plants (e.g., age > 100 years)
+older_plants <- plant_age_performance %>%
+  filter(age > 100)
+
+# Define low performance as below the 25th percentile of total generation
+low_performance_threshold <- quantile(older_plants$total_generation, 0.25, na.rm = TRUE)
+
+# Identify older plants with low performance
+older_low_performance <- older_plants %>%
+  filter(total_generation < low_performance_threshold) %>%
+  arrange(age, total_generation) # Sort for easier review
+
+# View the results
+print(older_low_performance)
+```
+
+```{r}
+# Plot older plants with low performance
+ggplot(older_low_performance, aes(x = age, y = total_generation)) +
+  geom_point(color = "red", size = 3, alpha = 0.7) +
+  labs(
+    title = "Older Power Plants with Low Performance",
+    subtitle = "Plants older than 100 years with generation below the 25th percentile",
+    x = "Age of Plant (Years)",
+    y = "Total Electricity Generation (GWh)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12, face = "italic")
+  )
+```
+
+
+
+
+
+
+

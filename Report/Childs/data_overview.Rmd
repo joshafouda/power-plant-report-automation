@@ -1,0 +1,373 @@
+
+## View of Data
+
+```{r}
+kable(head(power_plant_data, format = "html"))
+```
+
+```{r}
+# Glimpse and Summary
+glimpse(power_plant_data)
+summary(power_plant_data)
+```
+
+## Variable Descriptions for the Global Power Plant Database
+
+1. **`country`**  
+   *Description*: The country's code where the power plant is located.  
+   *Type*: Categorical (e.g., "AFG", "IND", "GBR")
+
+2. **`country_long`**  
+   *Description*: The country's name where the power plant is located.  
+   *Type*: Categorical (e.g., "Afghanistan", "India", "	United Kingdom")
+
+3. **`name`**  
+   *Description*: The name of the power plant. This typically refers to the formal name assigned to the plant.  
+   *Type*: Categorical (e.g., "Vindhyachal Thermal Power Station")
+
+4. **`gppd_idnr`**  
+   *Description*: A unique identifier for the power plant in the dataset, useful for cross-referencing.  
+   *Type*: Categorical (alphanumeric code)
+   
+The result of `length(power_plant_data$gppd_idnr) == nrow(power_plant_data)` being `TRUE` confirms that each power plant in the dataset has a unique `gppd_idnr`, making it a reliable identifier for cross-referencing.
+
+5. **`capacity_mw`**  
+   *Description*: The capacity of the power plant in megawatts (MW). This indicates the maximum output the plant can generate.  
+   *Type*: Numeric (e.g., 1000 MW)
+
+6. **`latitude`**  
+   *Description*: The geographical latitude of the power plant’s location.  
+   *Type*: Numeric (e.g., 28.7041)
+
+7. **`longitude`**  
+   *Description*: The geographical longitude of the power plant’s location.  
+   *Type*: Numeric (e.g., 77.1025)
+
+8. **`primary_fuel`**  
+   *Description*: The primary fuel used by the power plant to generate electricity. Examples include coal, natural gas, hydro, solar, etc.  
+   *Type*: Categorical (e.g., "Coal", "Hydro", "Solar")
+
+9. **`other_fuel1`**  
+   *Description*: A secondary fuel used by the power plant, if applicable.  
+   *Type*: Categorical (e.g., "Natural Gas")
+
+10. **`other_fuel2`**  
+    *Description*: A tertiary fuel used by the power plant, if applicable.  
+    *Type*: Categorical (e.g., "Oil")
+
+11. **`other_fuel3`**  
+    *Description*: A fourth fuel type, if applicable.  
+    *Type*: Categorical (e.g., "Biomass")
+
+12. **`commissioning_year`**  
+    *Description*: The year the power plant was commissioned and began operations.  
+    *Type*: Numeric (e.g., 1995)
+
+13. **`owner`**  
+    *Description*: The owner(s) of the power plant, which could be a private company, a government entity, or a consortium of both.  
+    *Type*: Categorical (e.g., "NTPC", "State Government of Maharashtra")
+
+14. **`source`**  
+    *Description*: The source from which the data about the power plant was obtained.  
+    *Type*: Categorical (e.g., "World Bank", "IEA")
+
+15. **`url`**  
+    *Description*: A URL link to more detailed information about the power plant (e.g., official site, reports).  
+    *Type*: URL (e.g., "https://www.ntpc.co.in/")
+
+16. **`geolocation_source`**  
+    *Description*: The source of the geolocation data, providing information about the geographic coordinates of the power plant.  
+    *Type*: Categorical (e.g., "Google Earth", "OpenStreetMap")
+
+17. **`wepp_id`**  
+    *Description*: A unique identifier for the power plant in the WEPP (World Energy Project Database).  
+    *Type*: Categorical (alphanumeric code)
+
+18. **`year_of_capacity_data`**  
+    *Description*: The year when the capacity data was last updated or reported.  
+    *Type*: Numeric (e.g., 2019)
+
+19. **`generation_gwh_2013`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2013.  
+    *Type*: Numeric (e.g., 1200 GWh)
+
+20. **`generation_gwh_2014`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2014.  
+    *Type*: Numeric (e.g., 1250 GWh)
+
+21. **`generation_gwh_2015`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2015.  
+    *Type*: Numeric (e.g., 1300 GWh)
+
+22. **`generation_gwh_2016`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2016.  
+    *Type*: Numeric (e.g., 1350 GWh)
+
+23. **`generation_gwh_2017`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2017.  
+    *Type*: Numeric (e.g., 1400 GWh)
+
+24. **`generation_gwh_2018`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2018.  
+    *Type*: Numeric (e.g., 1450 GWh)
+
+25. **`generation_gwh_2019`**  
+    *Description*: The electricity generation in gigawatt-hours (GWh) for the year 2019.  
+    *Type*: Numeric (e.g., 1500 GWh)
+
+26. **`generation_data_source`**  
+    *Description*: The source of the generation data, indicating where the reported generation figures come from.  
+    *Type*: Categorical (e.g., "Plant Records", "Estimated")
+
+27. **`estimated_generation_gwh_2013`**  
+    *Description*: The estimated electricity generation in gigawatt-hours (GWh) for the year 2013, if actual data is unavailable.  
+    *Type*: Numeric (e.g., 1150 GWh)
+
+28. **`estimated_generation_gwh_2014`**  
+    *Description*: The estimated electricity generation in gigawatt-hours (GWh) for the year 2014, if actual data is unavailable.  
+    *Type*: Numeric (e.g., 1200 GWh)
+
+29. **`estimated_generation_gwh_2015`**  
+    *Description*: The estimated electricity generation in gigawatt-hours (GWh) for the year 2015, if actual data is unavailable.  
+    *Type*: Numeric (e.g., 1250 GWh)
+
+30. **`estimated_generation_gwh_2016`**  
+    *Description*: The estimated electricity generation in gigawatt-hours (GWh) for the year 2016, if actual data is unavailable.  
+    *Type*: Numeric (e.g., 1300 GWh)
+
+31. **`estimated_generation_gwh_2017`**  
+    *Description*: The estimated electricity generation in gigawatt-hours (GWh) for the year 2017, if actual data is unavailable.  
+    *Type*: Numeric (e.g., 1350 GWh)
+
+32. **`estimated_generation_note_2013`**  
+    *Description*: A note explaining any discrepancies or assumptions made in the estimated generation for 2013.  
+    *Type*: Categorical (e.g., "Data not available")
+
+33. **`estimated_generation_note_2014`**  
+    *Description*: A note explaining any discrepancies or assumptions made in the estimated generation for 2014.  
+    *Type*: Categorical (e.g., "Data estimated based on plant capacity")
+
+34. **`estimated_generation_note_2015`**  
+    *Description*: A note explaining any discrepancies or assumptions made in the estimated generation for 2015.  
+    *Type*: Categorical (e.g., "Data estimated")
+
+35. **`estimated_generation_note_2016`**  
+    *Description*: A note explaining any discrepancies or assumptions made in the estimated generation for 2016.  
+    *Type*: Categorical (e.g., "Actual data unavailable")
+
+36. **`estimated_generation_note_2017`**  
+    *Description*: A note explaining any discrepancies or assumptions made in the estimated generation for 2017.  
+    *Type*: Categorical (e.g., "Based on historical averages")
+
+This dataset provides a comprehensive overview of the world's power plants, making it an invaluable resource for energy analysis, decision-making, and reporting purposes.
+
+## Missing data rate for different columns
+
+```{r}
+# Missing data rate for different columns
+missing_data_rate <- power_plant_data %>%
+  summarise_all(~ mean(is.na(.)) * 100) %>% # Calculate percentage of missing values
+  pivot_longer(everything(), names_to = "column", values_to = "missing_rate") %>%
+  arrange(desc(missing_rate))
+
+# View missing data rates
+print(missing_data_rate)
+```
+
+The column `other_fuel3` has a missing rate of 100%, indicating that no records in the dataset contain information about a fourth fuel type. This could indicate that none of the power plants in the dataset utilizes a fourth fuel type. This suggests that the column is effectively unused and could potentially be excluded from the analysis.
+
+
+```{r}
+# Missing data rate
+p <- ggplot(missing_data_rate, aes(x = reorder(column, -missing_rate), y = missing_rate, fill = missing_rate)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis() +
+  coord_flip() +
+  labs(
+    title = "Missing Data Rate by Column",
+    x = "Column",
+    y = "Missing Data Rate (%)"
+  )
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Number of Power Plants by Country
+
+```{r}
+# Distribution of the number of power plants by country
+plants_by_country <- power_plant_data %>%
+  group_by(country_long) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(desc(num_power_plants))
+
+# View the distribution
+print(plants_by_country)
+
+# 1. Number of power plants by country
+p <- ggplot(head(plants_by_country, 10), aes(x = reorder(country_long, -num_power_plants), y = num_power_plants)) +
+  geom_bar(stat = "identity", fill = viridis(1)) + # fill = "steelblue"
+  coord_flip() +
+  labs(title = "Top 10 Country by Number of Power Plants", x = "Country", y = "Number of Power Plants")
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Number of Power plants by primary energy source
+
+```{r}
+# Distribution of power plants by primary energy source (primary_fuel)
+plants_by_fuel <- power_plant_data %>%
+  group_by(primary_fuel) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(desc(num_power_plants))
+
+# View the distribution
+print(plants_by_fuel)
+
+# Power plants by primary energy source
+p <- ggplot(plants_by_fuel, aes(x = reorder(primary_fuel, -num_power_plants), y = num_power_plants, fill = primary_fuel)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(title = "Number of Power Plants by Primary Energy Source", x = "Primary Energy Source", y = "Number of Power Plants")
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+## Number of power plants by commissioning year
+
+```{r}
+# Number of power plants by commissioning year
+plants_by_year <- power_plant_data %>%
+  filter(!is.na(commissioning_year)) %>%
+  group_by(commissioning_year) %>%
+  summarise(num_power_plants = n()) %>%
+  arrange(commissioning_year)
+
+# View the yearly distribution
+print(plants_by_year)
+
+# Visualization of Number of power plants by commissioning year
+p <- ggplot(plants_by_year, aes(x = commissioning_year, y = num_power_plants)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(title = "Number of Power Plants by Commissioning Year", x = "Year", y = "Number of Power Plants")
+
+if (is_html_output()) {
+  ggplotly(p)
+} else {
+  p
+}
+```
+
+
+
+## Power Plant Location Map
+
+```{r}
+# 2. 
+# Ensure dataset has valid lat/lon values
+valid_locations <- power_plant_data %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+leaflet(data = valid_locations) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~longitude, ~latitude,
+    popup = ~paste(name, "<br>", "Capacity:", capacity_mw, "MW", "<br>", "Fuel Type:", primary_fuel),
+    radius = ~log(capacity_mw + 1), # Scale radius by log of capacity for better visualization
+    color = "blue",
+    fillOpacity = 0.7
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    title = "Power Plants",
+    colors = "blue",
+    labels = "Power Plant Locations"
+  )
+```
+
+## Plant Density
+
+```{r}
+# Ensure bins for latitude and longitude are numeric for mapping
+region_density <- power_plant_data %>%
+  filter(!is.na(latitude) & !is.na(longitude)) %>%
+  mutate(
+    lat_bin_start = floor(latitude / 5) * 5,
+    lon_bin_start = floor(longitude / 5) * 5,
+    lat_bin_end = lat_bin_start + 5,
+    lon_bin_end = lon_bin_start + 5
+  ) %>%
+  group_by(lat_bin_start, lon_bin_start, lat_bin_end, lon_bin_end) %>%
+  summarise(num_plants = n(), .groups = 'drop') %>%
+  arrange(desc(num_plants))
+
+# Plot density regions on a Leaflet map
+leaflet(data = region_density) %>%
+  addTiles() %>%
+  addRectangles(
+    lng1 = ~lon_bin_start,
+    lat1 = ~lat_bin_start,
+    lng2 = ~lon_bin_end,
+    lat2 = ~lat_bin_end,
+    fillColor = ~colorNumeric("viridis", num_plants)(num_plants),
+    fillOpacity = 0.7,
+    weight = 0
+  ) %>%
+  addLegend(
+    "bottomright",
+    pal = colorNumeric("viridis", region_density$num_plants),
+    values = region_density$num_plants,
+    title = "Plant Density",
+    opacity = 1
+  )
+
+```
+
+## Geographic Areas Most Equipped with Power Plants
+
+```{r}
+# Summarize the number of power plants by geographic region
+geographic_density <- power_plant_data %>%
+  filter(!is.na(latitude) & !is.na(longitude)) %>%
+  mutate(
+    lat_bin = floor(latitude / 5) * 5,
+    lon_bin = floor(longitude / 5) * 5
+  ) %>%
+  group_by(lat_bin, lon_bin) %>%
+  summarise(num_plants = n(), total_capacity = sum(capacity_mw, na.rm = TRUE), .groups = 'drop')
+
+# Visualization: Map of Power Plant Density
+leaflet(geographic_density) %>%
+  addTiles() %>%
+  addCircles(
+    lng = ~lon_bin + 2.5, lat = ~lat_bin + 2.5,
+    weight = 1,
+    radius = ~sqrt(num_plants) * 10000, # Scale by sqrt of the number of plants
+    color = "blue",
+    fillColor = "blue",
+    fillOpacity = 0.5,
+    popup = ~paste0("Plants: ", num_plants, "<br>Capacity (MW): ", total_capacity)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    colors = "blue",
+    labels = "Density of Power Plants",
+    title = "Power Plant Density"
+  )
+```
+
